@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: api-key-manager
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn api_key_manager:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: REPLICATE_API_KEY
+        sync: false

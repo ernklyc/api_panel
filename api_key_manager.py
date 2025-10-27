@@ -165,16 +165,16 @@ def proxy_replicate(model_name=None):
         print(f"\n🔔 Proxy isteği geldi: {request.method} {request.path}")
         print(f"📦 Model adı: {model_name or 'yok (version kullanılıyor)'}")
         
-        # API anahtarını yükle
-        keys = load_api_keys()
-        if 'replicate_api' not in keys:
-            print("❌ Replicate API key bulunamadı!")
+        # API anahtarını ortam değişkeninden (Environment Variable) yükle
+        api_key = os.environ.get('REPLICATE_API_KEY')
+        
+        if not api_key:
+            print("❌ REPLICATE_API_KEY ortam değişkeni bulunamadı!")
             return jsonify({
                 'success': False,
-                'error': 'Replicate API key not configured'
+                'error': 'API key not configured on server'
             }), 500
         
-        api_key = keys['replicate_api']['key']
         print(f"✅ API key bulundu: {api_key[:10]}...")
         
         # İstek verisini al
@@ -214,11 +214,7 @@ def proxy_replicate(model_name=None):
         else:
             print(f"❌ Replicate hatası: {response.text}")
         
-        # Son kullanım zamanını güncelle
-        keys['replicate_api']['last_used'] = datetime.now().isoformat()
-        save_api_keys(keys)
-        
-        # Yanıtı döndür
+        # Yanıtı döndür (last_used güncellemesi artık gerek yok - environment variable kullanıyoruz)
         return jsonify({
             'success': True,
             'data': response.json(),
@@ -250,15 +246,14 @@ def get_replicate_prediction(prediction_id):
     GET http://your-server:8000/api/v1/proxy/replicate/xxxxxx-prediction-id
     """
     try:
-        # API anahtarını yükle
-        keys = load_api_keys()
-        if 'replicate_api' not in keys:
+        # API anahtarını ortam değişkeninden (Environment Variable) yükle
+        api_key = os.environ.get('REPLICATE_API_KEY')
+        
+        if not api_key:
             return jsonify({
                 'success': False,
-                'error': 'Replicate API key not configured'
+                'error': 'API key not configured on server'
             }), 500
-        
-        api_key = keys['replicate_api']['key']
         
         # Replicate API'den prediction durumunu al
         headers = {
@@ -308,4 +303,6 @@ if __name__ == '__main__':
     print("⚠️  Ctrl+C ile durdurun")
     print("=" * 60)
     
-    app.run(host='0.0.0.0', port=8000, debug=False)
+    # Render ortamında PORT environment variable'ını kullan, yoksa 8000
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port, debug=False)
