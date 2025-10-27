@@ -165,17 +165,24 @@ def proxy_replicate(model_name=None):
         print(f"\n🔔 Proxy isteği geldi: {request.method} {request.path}")
         print(f"📦 Model adı: {model_name or 'yok (version kullanılıyor)'}")
         
-        # API anahtarını ortam değişkeninden (Environment Variable) yükle
+        # API anahtarını al - Önce environment variable, sonra api_keys.json
         api_key = os.environ.get('REPLICATE_API_KEY')
         
         if not api_key:
-            print("❌ REPLICATE_API_KEY ortam değişkeni bulunamadı!")
-            return jsonify({
-                'success': False,
-                'error': 'API key not configured on server'
-            }), 500
-        
-        print(f"✅ API key bulundu: {api_key[:10]}...")
+            # Production'da environment variable yok, local'de api_keys.json kullan
+            print("⚠️  REPLICATE_API_KEY environment variable bulunamadı, api_keys.json kontrol ediliyor...")
+            keys = load_api_keys()
+            if 'replicate_api' in keys:
+                api_key = keys['replicate_api']['key']
+                print(f"✅ API key api_keys.json'dan yüklendi: {api_key[:10]}...")
+            else:
+                print("❌ API key bulunamadı! Ne environment variable ne de api_keys.json'da key var!")
+                return jsonify({
+                    'success': False,
+                    'error': 'API key not configured. Set REPLICATE_API_KEY environment variable or configure api_keys.json'
+                }), 500
+        else:
+            print(f"✅ API key environment variable'dan yüklendi: {api_key[:10]}...")
         
         # İstek verisini al
         data = request.json
@@ -246,14 +253,19 @@ def get_replicate_prediction(prediction_id):
     GET http://your-server:8000/api/v1/proxy/replicate/xxxxxx-prediction-id
     """
     try:
-        # API anahtarını ortam değişkeninden (Environment Variable) yükle
+        # API anahtarını al - Önce environment variable, sonra api_keys.json
         api_key = os.environ.get('REPLICATE_API_KEY')
         
         if not api_key:
-            return jsonify({
-                'success': False,
-                'error': 'API key not configured on server'
-            }), 500
+            # Production'da environment variable yok, local'de api_keys.json kullan
+            keys = load_api_keys()
+            if 'replicate_api' in keys:
+                api_key = keys['replicate_api']['key']
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'API key not configured. Set REPLICATE_API_KEY environment variable or configure api_keys.json'
+                }), 500
         
         # Replicate API'den prediction durumunu al
         headers = {
