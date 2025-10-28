@@ -139,6 +139,23 @@ def use_key(key_name):
         'message': 'Use /api/v1/proxy/replicate instead'
     }), 403
 
+@app.route('/', methods=['GET'])
+def index():
+    """Ana sayfa - API bilgileri"""
+    return jsonify({
+        'service': 'API Key Manager',
+        'version': '1.0.0',
+        'status': 'online',
+        'endpoints': {
+            'health': '/health',
+            'proxy': {
+                'replicate': '/api/v1/proxy/replicate/<model_name>',
+                'prediction': '/api/v1/proxy/replicate/prediction/<prediction_id>'
+            }
+        },
+        'docs': 'https://github.com/ernklyc/api_panel'
+    })
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({
